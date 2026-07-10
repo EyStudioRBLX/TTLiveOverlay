@@ -34,43 +34,69 @@ function renderElement(el: IOverlayElement): string {
   return "";
 }
 
+function htmlResponse(body: string, status = 200) {
+  return new NextResponse(body, {
+    status,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 export async function GET(_req: Request, { params }: Params) {
   const { id } = await params;
-  await connectDB();
 
-  const overlay = await Overlay.findById(id).lean() as {
-    elements: IOverlayElement[];
-  } | null;
+  let overlay: { elements: IOverlayElement[] } | null = null;
+
+  try {
+    await connectDB();
+    overlay = await Overlay.findById(id).lean() as { elements: IOverlayElement[] } | null;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unbekannter Fehler";
+    return htmlResponse(errorPage("Datenbankfehler", msg));
+  }
 
   if (!overlay) {
-    return new NextResponse("Not found", { status: 404 });
+    return htmlResponse(errorPage("Overlay nicht gefunden", `ID: ${id}`), 404);
   }
 
   const elementsHTML = overlay.elements.map(renderElement).join("\n");
 
-  const html = `<!DOCTYPE html>
+  return htmlResponse(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{
-  width:1920px;height:1080px;
-  overflow:hidden;
-  background:transparent;
-}
+html,body{width:1920px;height:1080px;overflow:hidden;background:transparent}
 body{position:relative}
 </style>
 </head>
 <body>
 ${elementsHTML}
 </body>
-</html>`;
+</html>`);
+}
 
-  return new NextResponse(html, {
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
+function errorPage(title: string, detail: string) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:transparent;font-family:Arial,sans-serif}
+.box{position:absolute;top:24px;left:24px;background:rgba(0,0,0,0.75);border:1px solid rgba(239,68,68,0.4);border-radius:12px;padding:16px 20px;max-width:600px}
+h1{color:#f87171;font-size:18px;margin-bottom:6px}
+p{color:#9ca3af;font-size:13px;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>⚠ ${title}</h1>
+  <p>${detail.replace(/</g, "&lt;")}</p>
+</div>
+</body>
+</html>`;
 }
