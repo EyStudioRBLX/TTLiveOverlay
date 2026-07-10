@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
+
+export const dynamic = "force-dynamic";
 import Overlay from "@/models/Overlay";
 
 type Params = { params: Promise<{ id: string }> };

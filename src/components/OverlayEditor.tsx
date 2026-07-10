@@ -69,9 +69,12 @@ export default function OverlayEditor({ initialOverlay }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [scale, setScale] = useState(0.5);
+  const [showLinkPanel, setShowLinkPanel] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasAreaRef = useRef<HTMLDivElement>(null);
+  const linkPanelRef = useRef<HTMLDivElement>(null);
 
   const dragState = useRef<{
     elementId: string;
@@ -82,6 +85,26 @@ export default function OverlayEditor({ initialOverlay }: Props) {
   } | null>(null);
 
   const selectedElement = elements.find((el) => el.id === selectedId) ?? null;
+  const overlayId = initialOverlay?._id ?? null;
+
+  const copyBrowserLink = () => {
+    if (!overlayId) return;
+    const url = `${window.location.origin}/api/overlay/${overlayId}/view`;
+    navigator.clipboard.writeText(url);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  useEffect(() => {
+    if (!showLinkPanel) return;
+    const handler = (e: MouseEvent) => {
+      if (linkPanelRef.current && !linkPanelRef.current.contains(e.target as Node)) {
+        setShowLinkPanel(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showLinkPanel]);
 
   useEffect(() => {
     const area = canvasAreaRef.current;
@@ -268,6 +291,43 @@ export default function OverlayEditor({ initialOverlay }: Props) {
             Element löschen
           </button>
         )}
+        {/* Browser Link */}
+        <div className="relative" ref={linkPanelRef}>
+          <button
+            onClick={() => overlayId ? setShowLinkPanel((v) => !v) : null}
+            title={overlayId ? "Browser-Link für OBS" : "Erst speichern"}
+            className={`text-sm px-4 py-1.5 rounded-lg border transition-colors flex items-center gap-2 ${
+              overlayId
+                ? "border-gray-700 text-gray-300 hover:border-indigo-500/50 hover:text-indigo-300"
+                : "border-gray-800 text-gray-600 cursor-not-allowed"
+            }`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+            Browser-Link
+          </button>
+          {showLinkPanel && overlayId && (
+            <div className="absolute right-0 top-full mt-2 w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-xl p-4 z-50">
+              <p className="text-xs font-semibold text-gray-300 mb-1">OBS Browser-Source URL</p>
+              <p className="text-[10px] text-gray-500 mb-3">Diese URL als Browser-Source in OBS oder Streamlabs einfügen.</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-gray-800 text-indigo-300 text-[10px] px-2 py-1.5 rounded-lg truncate block">
+                  {typeof window !== "undefined" ? `${window.location.origin}/api/overlay/${overlayId}/view` : ""}
+                </code>
+                <button
+                  onClick={copyBrowserLink}
+                  className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                    linkCopied ? "bg-emerald-600 text-white" : "bg-indigo-600 hover:bg-indigo-500 text-white"
+                  }`}
+                >
+                  {linkCopied ? "Kopiert!" : "Kopieren"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         <button
           onClick={save}
           disabled={saving}
@@ -382,6 +442,7 @@ export default function OverlayEditor({ initialOverlay }: Props) {
                     boxSizing: "border-box",
                   }}
                   onMouseDown={(e) => handleMouseDown(e, el)}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   {el.type === "text" && (
                     <div
