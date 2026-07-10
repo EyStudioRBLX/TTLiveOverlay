@@ -1,0 +1,60 @@
+import mongoose, { Schema, Document, Model } from "mongoose";
+
+export interface IOverlayElement {
+  id: string;
+  type: "text" | "image";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  content?: string;
+  fontSize?: number;
+  color?: string;
+  fontWeight?: string;
+  fontFamily?: string;
+  textAlign?: string;
+  src?: string;
+  objectFit?: string;
+}
+
+export interface IOverlay extends Document {
+  discordId: string;
+  name: string;
+  elements: IOverlayElement[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const OverlayElementSchema = new Schema<IOverlayElement>(
+  {
+    id: { type: String, required: true },
+    type: { type: String, enum: ["text", "image"], required: true },
+    x: { type: Number, required: true },
+    y: { type: Number, required: true },
+    width: { type: Number, required: true },
+    height: { type: Number, required: true },
+    content: String,
+    fontSize: Number,
+    color: String,
+    fontWeight: String,
+    fontFamily: String,
+    textAlign: String,
+    src: String,
+    objectFit: String,
+  },
+  { _id: false }
+);
+
+const OverlaySchema = new Schema<IOverlay>(
+  {
+    discordId: { type: String, required: true },
+    name: { type: String, required: true, default: "Neues Overlay" },
+    elements: { type: [OverlayElementSchema], default: [] },
+  },
+  { timestamps: true }
+);
+
+const Overlay: Model<IOverlay> =
+  mongoose.models.Overlay || mongoose.model<IOverlay>("Overlay", OverlaySchema);
+
+export default Overlay;
