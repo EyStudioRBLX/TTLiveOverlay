@@ -48,6 +48,23 @@ function renderElement(el: IOverlayElement): string {
     return `<div style="${style}"></div>`;
   }
 
+  if (el.type === "triangle") {
+    const style = `${base}background:${el.fillColor ?? "#6366f1"};clip-path:polygon(50% 0%,0% 100%,100% 100%);opacity:${(el.opacity ?? 100) / 100};overflow:visible;`;
+    return `<div style="${style}"></div>`;
+  }
+
+  if (el.type === "star") {
+    const style = `${base}background:${el.fillColor ?? "#f59e0b"};clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);opacity:${(el.opacity ?? 100) / 100};overflow:visible;`;
+    return `<div style="${style}"></div>`;
+  }
+
+  if (el.type === "progressbar") {
+    const val = Math.min(100, Math.max(0, el.progressValue ?? 50));
+    const outer = `${base}background:${el.trackColor ?? "#374151"};border-radius:${el.borderRadius ?? 4}px;opacity:${(el.opacity ?? 100) / 100};overflow:hidden;`;
+    const inner = `width:${val}%;height:100%;background:${el.fillColor ?? "#6366f1"};border-radius:${el.borderRadius ?? 4}px;`;
+    return `<div style="${outer}"><div style="${inner}"></div></div>`;
+  }
+
   return "";
 }
 
@@ -84,6 +101,8 @@ export async function GET(_req: Request, { params }: Params) {
 <html>
 <head>
 <meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Bebas+Neue&family=Anton&family=Bangers&family=Orbitron:wght@400;700&family=Press+Start+2P&family=Permanent+Marker&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1920px;height:1080px;overflow:hidden;background:transparent}

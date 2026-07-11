@@ -2,7 +2,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IOverlayElement {
   id: string;
-  type: "text" | "image" | "rectangle" | "ellipse" | "line";
+  type: "text" | "image" | "rectangle" | "ellipse" | "line" | "triangle" | "star" | "progressbar";
   x: number;
   y: number;
   width: number;
@@ -20,6 +20,8 @@ export interface IOverlayElement {
   borderWidth?: number;
   borderRadius?: number;
   opacity?: number;
+  progressValue?: number;
+  trackColor?: string;
 }
 
 export interface IOverlay extends Document {
@@ -33,7 +35,7 @@ export interface IOverlay extends Document {
 const OverlayElementSchema = new Schema<IOverlayElement>(
   {
     id: { type: String, required: true },
-    type: { type: String, enum: ["text", "image", "rectangle", "ellipse", "line"], required: true },
+    type: { type: String, enum: ["text", "image", "rectangle", "ellipse", "line", "triangle", "star", "progressbar"], required: true },
     x: { type: Number, required: true },
     y: { type: Number, required: true },
     width: { type: Number, required: true },
@@ -51,6 +53,8 @@ const OverlayElementSchema = new Schema<IOverlayElement>(
     borderWidth: Number,
     borderRadius: Number,
     opacity: Number,
+    progressValue: Number,
+    trackColor: String,
   },
   { _id: false }
 );

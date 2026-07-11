@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Montserrat:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Bebas+Neue&family=Anton&family=Bangers&family=Orbitron:wght@400;700&family=Press+Start+2P&family=Permanent+Marker&display=swap');
 
 :root {
   --background: #ffffff;

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 const CANVAS_W = 1920;
 const CANVAS_H = 1080;
 
-type ElementType = "text" | "image" | "rectangle" | "ellipse" | "line";
+type ElementType = "text" | "image" | "rectangle" | "ellipse" | "line" | "triangle" | "star" | "progressbar";
 
 interface OverlayElement {
   id: string;
@@ -31,6 +31,9 @@ interface OverlayElement {
   borderWidth?: number;
   borderRadius?: number;
   opacity?: number;
+  // progressbar
+  progressValue?: number;
+  trackColor?: string;
 }
 
 interface InitialOverlay {
@@ -43,7 +46,14 @@ interface Props {
   initialOverlay?: InitialOverlay;
 }
 
-const FONTS = ["Arial", "Georgia", "Impact", "Verdana", "Courier New", "Times New Roman"];
+const FONTS = [
+  // System fonts
+  "Arial", "Georgia", "Impact", "Verdana", "Courier New", "Times New Roman",
+  "Tahoma", "Trebuchet MS", "Comic Sans MS",
+  // Google Fonts
+  "Roboto", "Open Sans", "Montserrat", "Oswald", "Raleway",
+  "Bebas Neue", "Anton", "Bangers", "Orbitron", "Press Start 2P", "Permanent Marker",
+];
 
 function NumberInput({
   label,
@@ -197,13 +207,35 @@ export default function OverlayEditor({ initialOverlay }: Props) {
         fillColor: "#6366f1", borderColor: "#818cf8",
         borderWidth: 0, opacity: 100,
       };
-    } else {
-      // line
+    } else if (type === "line") {
       el = {
         id, type,
         x: CANVAS_W / 2 - 300, y: CANVAS_H / 2 - 2,
         width: 600, height: 4,
         fillColor: "#ffffff", opacity: 100,
+      };
+    } else if (type === "triangle") {
+      el = {
+        id, type,
+        x: CANVAS_W / 2 - 150, y: CANVAS_H / 2 - 150,
+        width: 300, height: 300,
+        fillColor: "#6366f1", opacity: 100,
+      };
+    } else if (type === "star") {
+      el = {
+        id, type,
+        x: CANVAS_W / 2 - 150, y: CANVAS_H / 2 - 150,
+        width: 300, height: 300,
+        fillColor: "#f59e0b", opacity: 100,
+      };
+    } else {
+      // progressbar
+      el = {
+        id, type,
+        x: CANVAS_W / 2 - 300, y: CANVAS_H / 2 - 30,
+        width: 600, height: 60,
+        fillColor: "#6366f1", trackColor: "#374151",
+        borderRadius: 8, progressValue: 70, opacity: 100,
       };
     }
 
@@ -419,11 +451,53 @@ export default function OverlayEditor({ initialOverlay }: Props) {
       );
     }
 
+    if (el.type === "triangle") {
+      return (
+        <div style={{
+          width: "100%", height: "100%",
+          background: el.fillColor ?? "#6366f1",
+          clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
+          opacity: (el.opacity ?? 100) / 100,
+        }} />
+      );
+    }
+
+    if (el.type === "star") {
+      return (
+        <div style={{
+          width: "100%", height: "100%",
+          background: el.fillColor ?? "#f59e0b",
+          clipPath: "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
+          opacity: (el.opacity ?? 100) / 100,
+        }} />
+      );
+    }
+
+    if (el.type === "progressbar") {
+      const val = Math.min(100, Math.max(0, el.progressValue ?? 50));
+      return (
+        <div style={{
+          width: "100%", height: "100%",
+          background: el.trackColor ?? "#374151",
+          borderRadius: el.borderRadius ?? 4,
+          opacity: (el.opacity ?? 100) / 100,
+          overflow: "hidden",
+        }}>
+          <div style={{
+            width: `${val}%`, height: "100%",
+            background: el.fillColor ?? "#6366f1",
+            borderRadius: el.borderRadius ?? 4,
+          }} />
+        </div>
+      );
+    }
+
     return null;
   };
 
   const typeLabel: Record<ElementType, string> = {
     text: "Text", image: "Bild", rectangle: "Rechteck", ellipse: "Ellipse", line: "Linie",
+    triangle: "Dreieck", star: "Stern", progressbar: "Fortschrittsbalken",
   };
 
   return (
@@ -582,6 +656,43 @@ export default function OverlayEditor({ initialOverlay }: Props) {
               <line x1="2" y1="12" x2="22" y2="12" />
             </svg>
             <span className="text-[8px] text-gray-600">Linie</span>
+          </button>
+
+          {/* Triangle */}
+          <button
+            onClick={() => addElement("triangle")}
+            title="Dreieck hinzufügen"
+            className="w-11 h-11 rounded-xl bg-gray-800 hover:bg-indigo-600/20 border border-gray-700 hover:border-indigo-500/50 text-gray-400 hover:text-indigo-300 transition-all flex flex-col items-center justify-center gap-0.5"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <polygon points="12,3 22,21 2,21" />
+            </svg>
+            <span className="text-[8px] text-gray-600">Dreieck</span>
+          </button>
+
+          {/* Star */}
+          <button
+            onClick={() => addElement("star")}
+            title="Stern hinzufügen"
+            className="w-11 h-11 rounded-xl bg-gray-800 hover:bg-indigo-600/20 border border-gray-700 hover:border-indigo-500/50 text-gray-400 hover:text-indigo-300 transition-all flex flex-col items-center justify-center gap-0.5"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+            </svg>
+            <span className="text-[8px] text-gray-600">Stern</span>
+          </button>
+
+          {/* Progress Bar */}
+          <button
+            onClick={() => addElement("progressbar")}
+            title="Fortschrittsbalken hinzufügen"
+            className="w-11 h-11 rounded-xl bg-gray-800 hover:bg-indigo-600/20 border border-gray-700 hover:border-indigo-500/50 text-gray-400 hover:text-indigo-300 transition-all flex flex-col items-center justify-center gap-0.5"
+          >
+            <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
+              <rect x="0" y="0" width="16" height="10" rx="2" fill="currentColor" opacity="0.3" />
+              <rect x="0" y="0" width="10" height="10" rx="2" fill="currentColor" />
+            </svg>
+            <span className="text-[8px] text-gray-600">Progress</span>
           </button>
         </div>
 
@@ -793,6 +904,56 @@ export default function OverlayEditor({ initialOverlay }: Props) {
                 <div className="space-y-2">
                   <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Aussehen</p>
                   <ColorInput label="Farbe" value={selectedElement.fillColor ?? "#ffffff"} onChange={(v) => updateElement(selectedElement.id, { fillColor: v })} />
+                  <label className="block">
+                    <span className="text-[10px] text-gray-500 uppercase tracking-wider">Deckkraft (%)</span>
+                    <input
+                      type="range" min={0} max={100}
+                      value={selectedElement.opacity ?? 100}
+                      onChange={(e) => updateElement(selectedElement.id, { opacity: Number(e.target.value) })}
+                      className="w-full mt-1 accent-indigo-500"
+                    />
+                    <span className="text-[10px] text-gray-500">{selectedElement.opacity ?? 100}%</span>
+                  </label>
+                </div>
+              )}
+
+              {/* Triangle & Star properties */}
+              {(selectedElement.type === "triangle" || selectedElement.type === "star") && (
+                <div className="space-y-2">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Aussehen</p>
+                  <ColorInput label="Farbe" value={selectedElement.fillColor ?? "#6366f1"} onChange={(v) => updateElement(selectedElement.id, { fillColor: v })} />
+                  <label className="block">
+                    <span className="text-[10px] text-gray-500 uppercase tracking-wider">Deckkraft (%)</span>
+                    <input
+                      type="range" min={0} max={100}
+                      value={selectedElement.opacity ?? 100}
+                      onChange={(e) => updateElement(selectedElement.id, { opacity: Number(e.target.value) })}
+                      className="w-full mt-1 accent-indigo-500"
+                    />
+                    <span className="text-[10px] text-gray-500">{selectedElement.opacity ?? 100}%</span>
+                  </label>
+                </div>
+              )}
+
+              {/* Progress Bar properties */}
+              {selectedElement.type === "progressbar" && (
+                <div className="space-y-2">
+                  <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Fortschritt</p>
+                  <label className="block">
+                    <span className="text-[10px] text-gray-500 uppercase tracking-wider">Wert (%)</span>
+                    <input
+                      type="range" min={0} max={100}
+                      value={selectedElement.progressValue ?? 50}
+                      onChange={(e) => updateElement(selectedElement.id, { progressValue: Number(e.target.value) })}
+                      className="w-full mt-1 accent-indigo-500"
+                    />
+                    <span className="text-[10px] text-gray-500">{selectedElement.progressValue ?? 50}%</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <ColorInput label="Füllfarbe" value={selectedElement.fillColor ?? "#6366f1"} onChange={(v) => updateElement(selectedElement.id, { fillColor: v })} />
+                    <ColorInput label="Track" value={selectedElement.trackColor ?? "#374151"} onChange={(v) => updateElement(selectedElement.id, { trackColor: v })} />
+                  </div>
+                  <NumberInput label="Abrundung (px)" value={selectedElement.borderRadius ?? 4} onChange={(v) => updateElement(selectedElement.id, { borderRadius: Math.max(0, v) })} />
                   <label className="block">
                     <span className="text-[10px] text-gray-500 uppercase tracking-wider">Deckkraft (%)</span>
                     <input
