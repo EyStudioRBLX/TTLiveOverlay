@@ -114,6 +114,17 @@ export default function OverlayEditor({ initialOverlay }: Props) {
     startElemY: number;
   } | null>(null);
 
+  const resizeState = useRef<{
+    elementId: string;
+    corner: "tl" | "tr" | "bl" | "br";
+    startMouseX: number;
+    startMouseY: number;
+    startX: number;
+    startY: number;
+    startWidth: number;
+    startHeight: number;
+  } | null>(null);
+
   const selectedElement = elements.find((el) => el.id === selectedId) ?? null;
   const overlayId = initialOverlay?._id ?? null;
 
@@ -212,6 +223,25 @@ export default function OverlayEditor({ initialOverlay }: Props) {
     setSelectedId(null);
   };
 
+  const handleResizeStart = (
+    e: React.MouseEvent,
+    el: OverlayElement,
+    corner: "tl" | "tr" | "bl" | "br"
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+    resizeState.current = {
+      elementId: el.id,
+      corner,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      startX: el.x,
+      startY: el.y,
+      startWidth: el.width,
+      startHeight: el.height,
+    };
+  };
+
   const handleMouseDown = (e: React.MouseEvent, el: OverlayElement) => {
     e.stopPropagation();
     e.preventDefault();
@@ -227,6 +257,39 @@ export default function OverlayEditor({ initialOverlay }: Props) {
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
+      if (resizeState.current) {
+        const { elementId, corner, startMouseX, startMouseY, startX, startY, startWidth, startHeight } = resizeState.current;
+        const dx = (e.clientX - startMouseX) / scale;
+        const dy = (e.clientY - startMouseY) / scale;
+        const MIN = 10;
+        let newX = startX, newY = startY, newW = startWidth, newH = startHeight;
+
+        if (corner === "br") {
+          newW = Math.max(MIN, startWidth + dx);
+          newH = Math.max(MIN, startHeight + dy);
+        } else if (corner === "bl") {
+          newW = Math.max(MIN, startWidth - dx);
+          newX = startX + startWidth - newW;
+          newH = Math.max(MIN, startHeight + dy);
+        } else if (corner === "tr") {
+          newW = Math.max(MIN, startWidth + dx);
+          newH = Math.max(MIN, startHeight - dy);
+          newY = startY + startHeight - newH;
+        } else {
+          newW = Math.max(MIN, startWidth - dx);
+          newX = startX + startWidth - newW;
+          newH = Math.max(MIN, startHeight - dy);
+          newY = startY + startHeight - newH;
+        }
+
+        setElements((prev) =>
+          prev.map((el) =>
+            el.id === elementId ? { ...el, x: newX, y: newY, width: newW, height: newH } : el
+          )
+        );
+        return;
+      }
+
       if (!dragState.current) return;
       const dx = (e.clientX - dragState.current.startMouseX) / scale;
       const dy = (e.clientY - dragState.current.startMouseY) / scale;
@@ -247,6 +310,7 @@ export default function OverlayEditor({ initialOverlay }: Props) {
 
   const handleMouseUp = useCallback(() => {
     dragState.current = null;
+    resizeState.current = null;
   }, []);
 
   const save = async () => {
@@ -550,18 +614,36 @@ export default function OverlayEditor({ initialOverlay }: Props) {
                   style={{
                     position: "absolute", left: el.x, top: el.y, width: el.width, height: el.height,
                     outline: selectedId === el.id ? "2px solid #6366f1" : "2px solid transparent",
-                    outlineOffset: "1px", cursor: "move", overflow: "hidden", boxSizing: "border-box",
+                    outlineOffset: "1px", cursor: "move", boxSizing: "border-box",
                   }}
                   onMouseDown={(e) => handleMouseDown(e, el)}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {renderCanvasElement(el)}
+                  {/* Content clipped separately so handles can overflow */}
+                  <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
+                    {renderCanvasElement(el)}
+                  </div>
 
-                  {/* Selection handles */}
+                  {/* Resize handles */}
                   {selectedId === el.id && (
                     <>
-                      {[{ top: -4, left: -4 }, { top: -4, right: -4 }, { bottom: -4, left: -4 }, { bottom: -4, right: -4 }].map((pos, i) => (
-                        <div key={i} style={{ position: "absolute", width: 8, height: 8, background: "#6366f1", borderRadius: 2, ...pos }} />
+                      {(
+                        [
+                          { corner: "tl", style: { top: -6, left: -6, cursor: "nwse-resize" } },
+                          { corner: "tr", style: { top: -6, right: -6, cursor: "nesw-resize" } },
+                          { corner: "bl", style: { bottom: -6, left: -6, cursor: "nesw-resize" } },
+                          { corner: "br", style: { bottom: -6, right: -6, cursor: "nwse-resize" } },
+                        ] as const
+                      ).map(({ corner, style }) => (
+                        <div
+                          key={corner}
+                          onMouseDown={(e) => handleResizeStart(e, el, corner)}
+                          style={{
+                            position: "absolute", width: 12, height: 12,
+                            background: "#6366f1", border: "2px solid #fff",
+                            borderRadius: 3, ...style,
+                          }}
+                        />
                       ))}
                     </>
                   )}
