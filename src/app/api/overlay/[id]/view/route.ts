@@ -31,6 +31,23 @@ function renderElement(el: IOverlayElement): string {
     return `<div style="${base}"><img src="${src}" alt="" style="${imgStyle}" /></div>`;
   }
 
+  if (el.type === "rectangle") {
+    const border = (el.borderWidth ?? 0) > 0 ? `border:${el.borderWidth}px solid ${el.borderColor ?? "#818cf8"};` : "";
+    const style = `${base}background:${el.fillColor ?? "#6366f1"};${border}border-radius:${el.borderRadius ?? 0}px;opacity:${(el.opacity ?? 100) / 100};`;
+    return `<div style="${style}"></div>`;
+  }
+
+  if (el.type === "ellipse") {
+    const border = (el.borderWidth ?? 0) > 0 ? `border:${el.borderWidth}px solid ${el.borderColor ?? "#818cf8"};` : "";
+    const style = `${base}background:${el.fillColor ?? "#6366f1"};${border}border-radius:50%;opacity:${(el.opacity ?? 100) / 100};`;
+    return `<div style="${style}"></div>`;
+  }
+
+  if (el.type === "line") {
+    const style = `${base}background:${el.fillColor ?? "#ffffff"};opacity:${(el.opacity ?? 100) / 100};`;
+    return `<div style="${style}"></div>`;
+  }
+
   return "";
 }
 
