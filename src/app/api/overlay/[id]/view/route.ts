@@ -60,9 +60,31 @@ function renderElement(el: IOverlayElement): string {
 
   if (el.type === "progressbar") {
     const val = Math.min(100, Math.max(0, el.progressValue ?? 50));
-    const outer = `${base}background:${el.trackColor ?? "#374151"};border-radius:${el.borderRadius ?? 4}px;opacity:${(el.opacity ?? 100) / 100};overflow:hidden;`;
-    const inner = `width:${val}%;height:100%;background:${el.fillColor ?? "#6366f1"};border-radius:${el.borderRadius ?? 4}px;`;
-    return `<div style="${outer}"><div style="${inner}"></div></div>`;
+    const max = el.progressMax ?? 100;
+    const stepText = el.progressStepFormat === "fraction"
+      ? `${Math.round(val * max / 100)}/${max}`
+      : `${Math.round(val)}%`;
+    const animType = el.progressAnimationType ?? "spring";
+    const dur = el.progressAnimationDuration ?? 1.5;
+    const cssDur = animType === "none" ? "0s" : animType === "spring" ? "1.2s" : `${dur}s`;
+    const cssTiming = animType === "spring" ? "cubic-bezier(0.34,1.56,0.64,1)" : "ease-out";
+    const uid = el.id.replace(/-/g, "");
+
+    const wrapStyle = `${base}opacity:${(el.opacity ?? 100) / 100};display:flex;flex-direction:column;`;
+    const labelHtml = el.progressLabel
+      ? `<div style="font-size:${el.progressLabelSize ?? 24}px;color:${el.progressLabelColor ?? "#ffffff"};font-family:${el.progressLabelFont ?? "Arial"},sans-serif;margin-bottom:6px;line-height:1.2;flex-shrink:0;">${el.progressLabel.replace(/</g, "&lt;")}</div>`
+      : "";
+    const trackStyle = `position:relative;flex:1;background:${el.trackColor ?? "#374151"};border-radius:${el.borderRadius ?? 4}px;overflow:hidden;min-height:0;`;
+    const fillStyle = `id="pb${uid}" width:0%;height:100%;background:${el.fillColor ?? "#6366f1"};border-radius:${el.borderRadius ?? 4}px;transition:width ${cssDur} ${cssTiming};`;
+    const stepInside = (el.progressStepVisible !== false) && el.progressStepPosition !== "below"
+      ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:${el.progressStepColor ?? "#ffffff"};font-size:${el.progressStepSize ?? 18}px;font-weight:bold;">${stepText}</div>`
+      : "";
+    const stepBelow = (el.progressStepVisible !== false) && el.progressStepPosition === "below"
+      ? `<div style="margin-top:4px;flex-shrink:0;color:${el.progressStepColor ?? "#ffffff"};font-size:${el.progressStepSize ?? 18}px;text-align:center;">${stepText}</div>`
+      : "";
+
+    return `<div style="${wrapStyle}">${labelHtml}<div style="${trackStyle}"><div id="pb${uid}" style="${fillStyle}"></div>${stepInside}</div>${stepBelow}</div>
+<script>requestAnimationFrame(function(){var el=document.getElementById('pb${uid}');if(el)el.style.width='${val}%';});</script>`;
   }
 
   return "";

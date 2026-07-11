@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 const CANVAS_W = 1920;
 const CANVAS_H = 1080;
@@ -33,7 +34,19 @@ interface OverlayElement {
   opacity?: number;
   // progressbar
   progressValue?: number;
+  progressMax?: number;
   trackColor?: string;
+  progressLabel?: string;
+  progressLabelSize?: number;
+  progressLabelColor?: string;
+  progressLabelFont?: string;
+  progressStepVisible?: boolean;
+  progressStepPosition?: string;
+  progressStepFormat?: string;
+  progressStepColor?: string;
+  progressStepSize?: number;
+  progressAnimationType?: string;
+  progressAnimationDuration?: number;
 }
 
 interface InitialOverlay {
@@ -232,10 +245,14 @@ export default function OverlayEditor({ initialOverlay }: Props) {
       // progressbar
       el = {
         id, type,
-        x: CANVAS_W / 2 - 300, y: CANVAS_H / 2 - 30,
-        width: 600, height: 60,
+        x: CANVAS_W / 2 - 300, y: CANVAS_H / 2 - 50,
+        width: 600, height: 100,
         fillColor: "#6366f1", trackColor: "#374151",
-        borderRadius: 8, progressValue: 70, opacity: 100,
+        borderRadius: 8, progressValue: 70, progressMax: 100, opacity: 100,
+        progressLabel: "", progressLabelSize: 24, progressLabelColor: "#ffffff", progressLabelFont: "Arial",
+        progressStepVisible: true, progressStepPosition: "inside", progressStepFormat: "percent",
+        progressStepColor: "#ffffff", progressStepSize: 18,
+        progressAnimationType: "spring", progressAnimationDuration: 1.5,
       };
     }
 
@@ -475,19 +492,60 @@ export default function OverlayEditor({ initialOverlay }: Props) {
 
     if (el.type === "progressbar") {
       const val = Math.min(100, Math.max(0, el.progressValue ?? 50));
+      const max = el.progressMax ?? 100;
+      const stepText = el.progressStepFormat === "fraction"
+        ? `${Math.round(val * max / 100)}/${max}`
+        : `${Math.round(val)}%`;
+      const animType = el.progressAnimationType ?? "spring";
+      const transition =
+        animType === "spring"
+          ? { type: "spring" as const, stiffness: 90, damping: 18 }
+          : animType === "none"
+          ? { duration: 0 }
+          : { type: "tween" as const, duration: el.progressAnimationDuration ?? 1.5, ease: "easeOut" as const };
+
       return (
-        <div style={{
-          width: "100%", height: "100%",
-          background: el.trackColor ?? "#374151",
-          borderRadius: el.borderRadius ?? 4,
-          opacity: (el.opacity ?? 100) / 100,
-          overflow: "hidden",
-        }}>
-          <div style={{
-            width: `${val}%`, height: "100%",
-            background: el.fillColor ?? "#6366f1",
-            borderRadius: el.borderRadius ?? 4,
-          }} />
+        <div style={{ width: "100%", height: "100%", opacity: (el.opacity ?? 100) / 100, display: "flex", flexDirection: "column" }}>
+          {el.progressLabel && (
+            <div style={{
+              fontSize: el.progressLabelSize ?? 24,
+              color: el.progressLabelColor ?? "#ffffff",
+              fontFamily: el.progressLabelFont ?? "Arial",
+              marginBottom: 6, lineHeight: 1.2, flexShrink: 0,
+            }}>
+              {el.progressLabel}
+            </div>
+          )}
+          <div style={{ position: "relative", flex: 1, background: el.trackColor ?? "#374151", borderRadius: el.borderRadius ?? 4, overflow: "hidden", minHeight: 0 }}>
+            <motion.div
+              key={el.id}
+              initial={{ width: 0 }}
+              animate={{ width: `${val}%` }}
+              transition={transition}
+              style={{ height: "100%", background: el.fillColor ?? "#6366f1", borderRadius: el.borderRadius ?? 4 }}
+            />
+            {el.progressStepVisible && el.progressStepPosition !== "below" && (
+              <div style={{
+                position: "absolute", inset: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: el.progressStepColor ?? "#ffffff",
+                fontSize: el.progressStepSize ?? 18,
+                fontWeight: "bold", pointerEvents: "none",
+              }}>
+                {stepText}
+              </div>
+            )}
+          </div>
+          {el.progressStepVisible && el.progressStepPosition === "below" && (
+            <div style={{
+              marginTop: 4, flexShrink: 0,
+              color: el.progressStepColor ?? "#ffffff",
+              fontSize: el.progressStepSize ?? 18,
+              textAlign: "center",
+            }}>
+              {stepText}
+            </div>
+          )}
         </div>
       );
     }
@@ -937,33 +995,128 @@ export default function OverlayEditor({ initialOverlay }: Props) {
 
               {/* Progress Bar properties */}
               {selectedElement.type === "progressbar" && (
-                <div className="space-y-2">
-                  <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Fortschritt</p>
-                  <label className="block">
-                    <span className="text-[10px] text-gray-500 uppercase tracking-wider">Wert (%)</span>
-                    <input
-                      type="range" min={0} max={100}
-                      value={selectedElement.progressValue ?? 50}
-                      onChange={(e) => updateElement(selectedElement.id, { progressValue: Number(e.target.value) })}
-                      className="w-full mt-1 accent-indigo-500"
-                    />
-                    <span className="text-[10px] text-gray-500">{selectedElement.progressValue ?? 50}%</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <ColorInput label="Füllfarbe" value={selectedElement.fillColor ?? "#6366f1"} onChange={(v) => updateElement(selectedElement.id, { fillColor: v })} />
-                    <ColorInput label="Track" value={selectedElement.trackColor ?? "#374151"} onChange={(v) => updateElement(selectedElement.id, { trackColor: v })} />
+                <div className="space-y-4">
+                  {/* Wert */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Fortschritt</p>
+                    <label className="block">
+                      <span className="text-[10px] text-gray-500 uppercase tracking-wider">Wert (%)</span>
+                      <input
+                        type="range" min={0} max={100}
+                        value={selectedElement.progressValue ?? 50}
+                        onChange={(e) => updateElement(selectedElement.id, { progressValue: Number(e.target.value) })}
+                        className="w-full mt-1 accent-indigo-500"
+                      />
+                      <span className="text-[10px] text-gray-500">{selectedElement.progressValue ?? 50}%</span>
+                    </label>
+                    <NumberInput label="Max-Wert" value={selectedElement.progressMax ?? 100} onChange={(v) => updateElement(selectedElement.id, { progressMax: Math.max(1, v) })} />
+                    <div className="grid grid-cols-2 gap-2">
+                      <ColorInput label="Füllfarbe" value={selectedElement.fillColor ?? "#6366f1"} onChange={(v) => updateElement(selectedElement.id, { fillColor: v })} />
+                      <ColorInput label="Track" value={selectedElement.trackColor ?? "#374151"} onChange={(v) => updateElement(selectedElement.id, { trackColor: v })} />
+                    </div>
+                    <NumberInput label="Abrundung (px)" value={selectedElement.borderRadius ?? 4} onChange={(v) => updateElement(selectedElement.id, { borderRadius: Math.max(0, v) })} />
+                    <label className="block">
+                      <span className="text-[10px] text-gray-500 uppercase tracking-wider">Deckkraft (%)</span>
+                      <input type="range" min={0} max={100} value={selectedElement.opacity ?? 100}
+                        onChange={(e) => updateElement(selectedElement.id, { opacity: Number(e.target.value) })}
+                        className="w-full mt-1 accent-indigo-500" />
+                      <span className="text-[10px] text-gray-500">{selectedElement.opacity ?? 100}%</span>
+                    </label>
                   </div>
-                  <NumberInput label="Abrundung (px)" value={selectedElement.borderRadius ?? 4} onChange={(v) => updateElement(selectedElement.id, { borderRadius: Math.max(0, v) })} />
-                  <label className="block">
-                    <span className="text-[10px] text-gray-500 uppercase tracking-wider">Deckkraft (%)</span>
-                    <input
-                      type="range" min={0} max={100}
-                      value={selectedElement.opacity ?? 100}
-                      onChange={(e) => updateElement(selectedElement.id, { opacity: Number(e.target.value) })}
-                      className="w-full mt-1 accent-indigo-500"
-                    />
-                    <span className="text-[10px] text-gray-500">{selectedElement.opacity ?? 100}%</span>
-                  </label>
+
+                  {/* Label above */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Label (über der Bar)</p>
+                    <label className="block">
+                      <span className="text-[10px] text-gray-500 uppercase tracking-wider">Text (leer = ausgeblendet)</span>
+                      <input
+                        type="text"
+                        value={selectedElement.progressLabel ?? ""}
+                        onChange={(e) => updateElement(selectedElement.id, { progressLabel: e.target.value })}
+                        placeholder="z.B. HP, Leben, XP …"
+                        className="w-full bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1.5 rounded mt-0.5 focus:outline-none focus:border-indigo-500"
+                      />
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <NumberInput label="Schriftgröße" value={selectedElement.progressLabelSize ?? 24} onChange={(v) => updateElement(selectedElement.id, { progressLabelSize: Math.max(8, v) })} />
+                      <ColorInput label="Farbe" value={selectedElement.progressLabelColor ?? "#ffffff"} onChange={(v) => updateElement(selectedElement.id, { progressLabelColor: v })} />
+                    </div>
+                    <label className="block">
+                      <span className="text-[10px] text-gray-500 uppercase tracking-wider">Schriftart</span>
+                      <select
+                        value={selectedElement.progressLabelFont ?? "Arial"}
+                        onChange={(e) => updateElement(selectedElement.id, { progressLabelFont: e.target.value })}
+                        className="w-full bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1.5 rounded mt-0.5 focus:outline-none focus:border-indigo-500"
+                      >
+                        {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
+                      </select>
+                    </label>
+                  </div>
+
+                  {/* Step text */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Schritt-Anzeige</p>
+                      <button
+                        onClick={() => updateElement(selectedElement.id, { progressStepVisible: !(selectedElement.progressStepVisible ?? true) })}
+                        className={`w-8 h-4 rounded-full transition-colors relative ${(selectedElement.progressStepVisible ?? true) ? "bg-indigo-600" : "bg-gray-700"}`}
+                      >
+                        <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${(selectedElement.progressStepVisible ?? true) ? "left-4" : "left-0.5"}`} />
+                      </button>
+                    </div>
+                    {(selectedElement.progressStepVisible ?? true) && (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="block">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-wider">Position</span>
+                            <select
+                              value={selectedElement.progressStepPosition ?? "inside"}
+                              onChange={(e) => updateElement(selectedElement.id, { progressStepPosition: e.target.value })}
+                              className="w-full bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1.5 rounded mt-0.5 focus:outline-none focus:border-indigo-500"
+                            >
+                              <option value="inside">In der Bar</option>
+                              <option value="below">Darunter</option>
+                            </select>
+                          </label>
+                          <label className="block">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-wider">Format</span>
+                            <select
+                              value={selectedElement.progressStepFormat ?? "percent"}
+                              onChange={(e) => updateElement(selectedElement.id, { progressStepFormat: e.target.value })}
+                              className="w-full bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1.5 rounded mt-0.5 focus:outline-none focus:border-indigo-500"
+                            >
+                              <option value="percent">70%</option>
+                              <option value="fraction">70/100</option>
+                            </select>
+                          </label>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <NumberInput label="Schriftgröße" value={selectedElement.progressStepSize ?? 18} onChange={(v) => updateElement(selectedElement.id, { progressStepSize: Math.max(8, v) })} />
+                          <ColorInput label="Farbe" value={selectedElement.progressStepColor ?? "#ffffff"} onChange={(v) => updateElement(selectedElement.id, { progressStepColor: v })} />
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Animation */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Animation</p>
+                    <label className="block">
+                      <span className="text-[10px] text-gray-500 uppercase tracking-wider">Typ</span>
+                      <select
+                        value={selectedElement.progressAnimationType ?? "spring"}
+                        onChange={(e) => updateElement(selectedElement.id, { progressAnimationType: e.target.value })}
+                        className="w-full bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1.5 rounded mt-0.5 focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="spring">Spring (fedrig)</option>
+                        <option value="tween">Tween (linear/ease)</option>
+                        <option value="none">Keine</option>
+                      </select>
+                    </label>
+                    {(selectedElement.progressAnimationType ?? "spring") === "tween" && (
+                      <NumberInput label="Dauer (Sekunden)" value={selectedElement.progressAnimationDuration ?? 1.5} onChange={(v) => updateElement(selectedElement.id, { progressAnimationDuration: Math.max(0.1, v) })} />
+                    )}
+                  </div>
                 </div>
               )}
             </div>

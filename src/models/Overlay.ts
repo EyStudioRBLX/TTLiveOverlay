@@ -21,7 +21,19 @@ export interface IOverlayElement {
   borderRadius?: number;
   opacity?: number;
   progressValue?: number;
+  progressMax?: number;
   trackColor?: string;
+  progressLabel?: string;
+  progressLabelSize?: number;
+  progressLabelColor?: string;
+  progressLabelFont?: string;
+  progressStepVisible?: boolean;
+  progressStepPosition?: string;
+  progressStepFormat?: string;
+  progressStepColor?: string;
+  progressStepSize?: number;
+  progressAnimationType?: string;
+  progressAnimationDuration?: number;
 }
 
 export interface IOverlay extends Document {
@@ -54,7 +66,19 @@ const OverlayElementSchema = new Schema<IOverlayElement>(
     borderRadius: Number,
     opacity: Number,
     progressValue: Number,
+    progressMax: Number,
     trackColor: String,
+    progressLabel: String,
+    progressLabelSize: Number,
+    progressLabelColor: String,
+    progressLabelFont: String,
+    progressStepVisible: Boolean,
+    progressStepPosition: String,
+    progressStepFormat: String,
+    progressStepColor: String,
+    progressStepSize: Number,
+    progressAnimationType: String,
+    progressAnimationDuration: Number,
   },
   { _id: false }
 );
